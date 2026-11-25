@@ -1,0 +1,10 @@
+The following paragraph exists only to set the context size, and is repeated unchanged. It
+carries no information about the task. It is identical in every run of this benchmark, on
+every machine, on every model, so that a throughput number measured at 32k means the same
+thing in two posts by two people. Nothing in it should be answered, quoted, or summarised.
+The measured quantity is the time between sending the request and receiving the first token,
+and the time between that first token and the last, over the same fixed output budget. A
+model that is given a bigger output budget, a warm prefix cache, a batch above one, or a
+different seed, is not in the same comparison as this one, and a reader comparing the two is
+comparing the harnesses, not the models. This paragraph is repeated until the request reaches
+its target context.
