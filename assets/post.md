@@ -1,6 +1,6 @@
 # Post template — fill what you can, `unknown` for the rest
 
-## Post Title: `<MODEL> <QUANT> on <GPU> — <ENGINE>`
+# Reddit Post Title: `<SHORT_LLM_NAME> - <QUANT> - <ENGINE> - <~WARM_TOKS> - <GPUS>`
 
 ## Model
 MODEL:

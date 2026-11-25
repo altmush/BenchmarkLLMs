@@ -113,3 +113,15 @@ check "the reply fences the post so it survives copy-paste" '````markdown' \
 check "and a field nobody confirmed is asked, not printed as a fact" "- engine: unknown (source: unknown)" \
       "$(python3 "$PY" post "$T3/meta" "$T3/runs" reply | grep -m1 -F -- '- engine:')"
 rm -rf "$T3"
+T4=$(mktemp -d)
+{
+  printf 'model\tQwen3.8-Flash-Next-GSQ-RCO-abliterated-IQ3_XXS\nquant\tIQ3_XXS\nengine\tstrata\n'
+  printf 'gpus\t[{"id": 0, "model": "Tesla V100-SXM2-16GB", "vram_gb": 16.0}, {"id": 1, "model": "NVIDIA GeForce RTX 3060", "vram_gb": 12.0}, {"id": 2, "model": "NVIDIA GeForce RTX 3060", "vram_gb": 12.0}]\n'
+} > "$T4/meta"
+for n in 1 2 3; do printf 'coding\t49152\taaa\tM\tE\t43664\t256\t0.11\t2.74\t%s\t200\t0\t0\t150\t2590\n' "$n"; done > "$T4/runs"
+for n in 1 2 3; do printf 'general\t49152\tbbb\tM\tE\t43647\t256\t0.10\t2.87\t%s\t200\t0\t0\t120\t2750\n' "$n"; done >> "$T4/runs"
+check "the title is short name, quant, engine, median tok/s and cards — not the whole filename" \
+      "# Reddit Post Title: Qwen3.8 - IQ3_XXS - Strata - ~95 TOK/s - V100(16gb) + 2x3060s(12gb)" \
+      "$(python3 "$PY" post "$T4/meta" "$T4/runs" | sed -n 1p)"
+rm -rf "$T4"
+exit $fail

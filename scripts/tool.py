@@ -227,6 +227,43 @@ def headline_numbers(runs):
     return {"tps": stats(dec)[0], "ttft": "%s s" % stats(tt)[0] if dec or tt else U}
 
 
+def short_name(model):
+    """The subreddit title wants the family name, not the filename: `Qwen3.8`, not
+    `Qwen3.8-Flash-Next-GSQ-RCO-abliterated-IQ3_XXS`. First name token that is not a quant, a tuner
+    or an uploader tag."""
+    for t in re.split(r"[-_]", re.sub(r"\.[gG][gG][uU][fF]$", "", model or "")):
+        if t and not QUANT_TOKEN.match(t) and t.lower() not in TUNING and not re.fullmatch(r"[a-zA-Z]+[0-9]+[a-zA-Z]*", t):
+            return t
+    return model or U
+
+
+def short_gpu(name, vram):
+    """`NVIDIA GeForce RTX 3060` is `3060` in a title; the vendor prefix is a reader's dead weight."""
+    n = re.search(r"(?i)\b(v\d+[a-z]?|mi\d+[a-z]*|a\d+[a-z]*|h\d+[a-z]*|\d{3,4}[a-z]?)\b", name or "")
+    return n.group(0) if n else ((name or U).split()[0] if (name or "").split() else U)
+
+
+def title_gpus(gpus):
+    """Cards of the same kind collapse into one count, biggest card first:
+    `V100(16gb) + 2x3060s(12gb)`. A title is prose, so it gets the tidy form; the yaml block keeps
+    the exact numbers."""
+    groups = {}
+    for g in gpus:
+        v = g.get("vram_gb")
+        try:
+            v = int(float(v)) if str(v).replace(".", "", 1).isdigit() else v
+        except Exception:
+            pass
+        groups[(short_gpu(g.get("model"), None), v)] = groups.get((short_gpu(g.get("model"), None), v), 0) + 1
+    if not groups:
+        return U
+    return " + ".join(
+        "%s%s(%s%s)" % ("%dx" % n if n > 1 else "", base + ("s" if n > 1 else ""),
+                        n and v, "gb")
+        for (base, v), n in sorted(groups.items(), key=lambda x: (
+            -(x[0][1] if isinstance(x[0][1], int) else -1), -x[1], x[0][0])))
+
+
 def build_post(metafile, runsfile):
     m = collections.defaultdict(lambda: U)   # a field nobody filled is `unknown`, not a crash
     for line in open(metafile):
@@ -242,7 +279,14 @@ def build_post(metafile, runsfile):
     A = []
     a = A.append
     tldr = {}
-    a("## Post Title: %s%s" % (m["model"], "" if m["quant"] == U else " " + m["quant"]))
+    gpus = json.loads(m["gpus"]) if str(m["gpus"]).strip().startswith("[") else []
+    warm = headline_numbers(runs)
+    engine_name = (m["engine"] or U)
+    engine_name = engine_name[0].upper() + engine_name[1:] if engine_name not in (U, "") else engine_name
+    tps = warm["tps"]
+    tps = "~%s TOK/s" % int(float(tps)) if str(tps).replace(".", "", 1).isdigit() else tps
+    a("# Reddit Post Title: %s - %s - %s - %s - %s"
+      % (short_name(m["model"]), m["quant"], engine_name, tps, title_gpus(gpus)))
     a("")
     a("# TLDR")
     a("")
@@ -251,13 +295,11 @@ def build_post(metafile, runsfile):
     a("QUANT: %s" % m["quant"])
     a("Fine Tuning: %s" % m["fine_tuning"])
     a("HF LINK: %s%s" % (m["hf"], guessed(m["hf_source"])))
-    warm = headline_numbers(runs)
     a("Warm TTFT: %s" % warm["ttft"])
     a("Warm TOK/s: %s" % warm["tps"])
     a("")
     a("## System")
     a("OS: %s" % m["os"])
-    gpus = json.loads(m["gpus"]) if str(m["gpus"]).strip().startswith("[") else []
     for i, g in enumerate(gpus):
         a("GPU#%s: %s - %s GB" % (g.get("id", i), g.get("model") or U,
                                   g.get("vram_gb") if g.get("vram_gb") is not None else U))
