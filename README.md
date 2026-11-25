@@ -2,12 +2,17 @@
 
 ![BenchmarkLLMs](<assets/GITHUB BANNER.png>)
 
-Benchmark a local LLM and get a ready-to-post write-up for [r/BenchmarkLLMs](https://reddit.com/r/BenchmarkLLMs/).
-Every run measures the same way — same prompts, same units, same ladder point, same settings — so posts
-are comparable with each other. It's an [Agent Skill](https://agentskills.io/specification): a `SKILL.md`,
-a script, fixed prompts, and a schema. Ask an agent to do it, don't run the script yourself.
+I made these two after seeing, across multiple subreddits, that user posts made it hard to get answers
+about different users' optimizations and specs. A user might post a TOK/s decode and leave out TTFT.
+They might post about a model but not mention the engine. This project aims to be a cohesive and
+reproducible way to share metrics and data when sharing benchmarks.
 
-Works in any harness with a shell tool: pi, Claude Code, OpenCode, Codex CLI, Gemini CLI, Cursor, Amp.
+Feel free to use this tool to create benchmarks for any LLM subreddit (or website), but this was mainly
+made for [r/BenchmarkLLMs](https://reddit.com/r/BenchmarkLLMs/).
+
+It's an [Agent Skill](https://agentskills.io/specification): a `SKILL.md`, a script, fixed prompts, and
+a schema. Ask an agent to do it, don't run the script yourself — works in any harness with a shell tool:
+pi, Claude Code, OpenCode, Codex CLI, Gemini CLI, Cursor, Amp.
 
 ## Install
 
