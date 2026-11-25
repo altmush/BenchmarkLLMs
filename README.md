@@ -2,13 +2,13 @@
 
 ![BenchmarkLLMs](<assets/GITHUB BANNER.png>)
 
-I made these two after seeing, across multiple subreddits, that user posts made it hard to get answers
-about different users' optimizations and specs. A user might post a TOK/s decode and leave out TTFT.
-They might post about a model but not mention the engine. This project aims to be a cohesive and
-reproducible way to share metrics and data when sharing benchmarks.
+Benchmark posts are hard to learn from: one post reports decode TOK/s and never mentions TTFT,
+another names the model but not the engine, and no two posts measure the same thing the same way. These
+two skills are the fix — the same fields, the same units, the same prompts and ladder, every time, so
+two people's posts about the same model can actually be compared.
 
-Feel free to use this tool to create benchmarks for any LLM subreddit (or website), but this was mainly
-made for [r/BenchmarkLLMs](https://reddit.com/r/BenchmarkLLMs/).
+Free to use for any LLM subreddit or site, but these were built for
+[r/BenchmarkLLMs](https://reddit.com/r/BenchmarkLLMs/).
 
 It's an [Agent Skill](https://agentskills.io/specification): a `SKILL.md`, a script, fixed prompts, and
 a schema. Ask an agent to do it, don't run the script yourself — works in any harness with a shell tool:
