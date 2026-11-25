@@ -9,6 +9,17 @@ a script, fixed prompts, and a schema. Ask an agent to do it, don't run the scri
 
 Works in any harness with a shell tool: pi, Claude Code, OpenCode, Codex CLI, Gemini CLI, Cursor, Amp.
 
+## Install
+
+Symlink or copy this directory — **named `benchmark-llms/`**, some harnesses enforce that — into:
+
+| Harness | Put it in |
+|---|---|
+| pi | `~/.agents/skills/` (or `./.agents/skills/` for one project) |
+| Claude Code | `~/.claude/skills/` |
+| OpenCode / Codex CLI / Gemini CLI / Cursor | their skills dir, or `./.agents/skills/` |
+| anything else | `AGENTS.md` says where to look |
+
 ## How to run it
 
 In Pi:
@@ -54,17 +65,6 @@ Elsewhere, say **"show me the past BenchmarkLLMs runs"**. The
 [`benchmark-llms-history`](benchmark-llms-history/) skill reads the yaml block of every post in
 `BenchmarkLLMs-results/` and prints them as one table — model, quant, engine, cold and warm tok/s and
 TTFT, date — sorted fastest first. Same skill format as the benchmark itself, so install it the same way.
-
-## Install
-
-Symlink or copy this directory — **named `benchmark-llms/`**, some harnesses enforce that — into:
-
-| Harness | Put it in |
-|---|---|
-| pi | `~/.agents/skills/` (or `./.agents/skills/` for one project) |
-| Claude Code | `~/.claude/skills/` |
-| OpenCode / Codex CLI / Gemini CLI / Cursor | their skills dir, or `./.agents/skills/` |
-| anything else | `AGENTS.md` says where to look |
 
 ## The rules that make posts comparable
 
