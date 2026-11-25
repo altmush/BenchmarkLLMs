@@ -18,6 +18,11 @@ Run one command, paste its output. The script does the measuring; you only fill 
 scripts/benchmarkllms.sh --out BenchmarkLLMs-results/<model>_<quant>_<YYYY-MM-DD>.md
 ```
 
+**Invoked with nothing else in hand? Do not greet and wait.** Run `scripts/benchmarkllms.sh --ask`
+with no endpoint (it probes localhost), fill what it can — your own harness block from your own config —
+and come back with the questions it printed, multiple choice where you can. The questionnaire *is* the
+greeting.
+
 ## Steps
 
 1. **Confirm the endpoint.** Pass `--endpoint http://host:port/v1`. Default from
