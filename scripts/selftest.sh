@@ -18,7 +18,7 @@ models:
   "nick":
     cmd: $T/launch.sh
 EOF
-printf '%s\n' '#!/bin/bash' 'exec llama-server --model /mnt/ai/llms/Foo-Bar-Q4_K_M.gguf' '# --model /mnt/ai/llms/Yesterday-Q2_S.gguf' > "$T/launch.sh"
+printf '%s\n' '#!/bin/bash' 'exec llama-server --model ~/models/Foo-Bar-Q4_K_M.gguf' '# --model ~/models/Yesterday-Q2_S.gguf' > "$T/launch.sh"
 check "a selector that names its file resolves" "Foo-Bar-Q4_K_M" "$(python3 "$PY" swap "$T/x.yaml" nick)"
 check "a selector that does not is a question"  "" "$(python3 "$PY" swap "$T/x.yaml" othername)"
 

@@ -59,7 +59,7 @@ of this subreddit, and they are not arbitrary:
 `fine_tuning`, `hf`.
 
 `model_source` is `flag` > `profile` > `dir` > `probe` > `alias`: an alias is a nickname a router
-invented (`fn-dual-designer`), and a nickname is not a model name — say what the full name on the
+invented (`my-router-alias`), and a nickname is not a model name — say what the full name on the
 weight file is (`Swift-Qwen3.8-Flash-Next-IQ3_XXS-abliterated-SC117`), because quant and tuner
 live in it and the post searches on them. `fine_tuning` is read from the same name when the name
 is real, and otherwise it is the human's answer to the questionnaire.
