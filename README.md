@@ -16,9 +16,10 @@ pi, Claude Code, OpenCode, Codex CLI, Gemini CLI, Cursor, Amp.
 
 ## Install
 
-Symlink or copy this directory — **named `benchmark-llms/`**, some harnesses enforce that — into:
+Clone the repo and put the two skill directories — **`benchmark-llms/`** and `benchmark-llms-history/`,
+name matters, some harnesses enforce it — where your harness looks. Copy or symlink, either works:
 
-| Harness | Put it in |
+| Harness | Put them in |
 |---|---|
 | pi | `~/.agents/skills/` (or `./.agents/skills/` for one project) |
 | Claude Code | `~/.claude/skills/` |
