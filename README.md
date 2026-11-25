@@ -2,42 +2,53 @@
 
 ![BenchmarkLLMs](<assets/GITHUB BANNER.png>)
 
-The same fields, the same units, the same prompts, the same ladder — for local LLM
-benchmarks. Post the output to [r/BenchmarkLLMs](https://reddit.com/r/BenchmarkLLMs).
+Benchmark a local LLM and get a ready-to-post write-up for [r/BenchmarkLLMs](https://reddit.com/r/BenchmarkLLMs/).
+Every run measures the same way — same prompts, same units, same ladder point, same settings — so posts
+are comparable with each other. It's an [Agent Skill](https://agentskills.io/specification): a `SKILL.md`,
+a script, fixed prompts, and a schema. Ask an agent to do it, don't run the script yourself.
 
-An [Agent Skill](https://agentskills.io/specification): one `SKILL.md`, a collector script,
-fixed prompts, and a schema. Any harness with a shell tool can run it — pi, Claude Code,
-OpenCode, Codex CLI, Gemini CLI, Cursor, Amp — and `AGENTS.md` points the ones that only read
-`AGENTS.md` here.
+Works in any harness with a shell tool: pi, Claude Code, OpenCode, Codex CLI, Gemini CLI, Cursor, Amp.
 
-## Run it
+## How to run it
+
+In an agent session, say **"benchmark this model"** (or `/benchmark-llms` in pi). The skill tells the
+agent to ask you any open questions first, then run:
 
 ```sh
-scripts/benchmarkllms.sh --endpoint http://localhost:8000/v1 \
-  --harness-name pi --harness-tools "read bash edit write"
+scripts/benchmarkllms.sh --out BenchmarkLLMs-results/<model>_<quant>_<YYYY-MM-DD>.md
 ```
 
-It prints the post; paste it. `--out BenchmarkLLMs-results/<model>_<quant>_<YYYY-MM-DD>.md` keeps a
-copy, so a model on your machine becomes a curve instead of a one-off post. Out of the box the run
-benchmarks **one point: 48k context** (both tasks) — the full ladder is opt-in. Say the line the
-script prints above the post: it is ready to paste into
-[r/BenchmarkLLMs](https://reddit.com/r/BenchmarkLLMs/).
+The script's last screen is the reply: readable results, the post fenced for copy-pasting, the timings,
+and any question nobody answered. Paste it into the subreddit.
 
-## Answer the questionnaire once, not every time
+**What the default run measures.** One ladder point: 48k context, both tasks. Fixed prompts (hashed),
+median of 3 runs, warmup 1, batch 1, prefix cache off, temperature 0, seed 1234, max tokens 256. The
+full ladder (`0,16384,32768,49152,65536`) is opt-in with `--ladder`.
 
-`--ask` runs the probes and prints a question for everything it cannot name: the real model behind
-a router alias, quant, engine, engine version, fine tuning. Multiple choice if your harness has it,
-a numbered list if it does not. `--save-profile` keeps the answers per endpoint+alias
-(`~/.config/benchmarkllms/profile.json`), so the next run there starts from them and does not ask
-you twice. An answer nobody has given is a question; a field the search or a filename only *suggests*
-still gets confirmed, and the post says where each field came from. `--real-name`, `--quant`, `--engine`, `--engine-version`,
-`--fine-tuning`, `--swap-config`, `--model-dir` and `--profile` are the flags the answers turn into
-(`$BENCHMARKLLMS_SWAP_CONFIG`, `$BENCHMARKLLMS_MODEL_DIR`, `$BENCHMARKLLMS_PROFILE` when a harness
-cannot pass flags — the swap config is how a router alias gets resolved on its own, the model dir is
-where it looks for candidates when it cannot).
+**What you get.** The post, plus a copy in `BenchmarkLLMs-results/` — that folder is gitignored and holds
+*your* posts, so a model on your machine becomes a curve instead of a one-off post.
 
-Install for everyone (symlink or copy this directory **named `benchmark-llms/`** — some
-implementations enforce that the directory matches `name:` in the frontmatter):
+**It asks, once.** Whatever it cannot name — the real model behind a router alias, the quant, the engine,
+its version, fine tuning — it asks you, and remembers your answers per endpoint+alias
+(`~/.config/benchmarkllms/profile.json`). The next run there does not ask again. A field it found by
+searching the web is labelled `(likely)` in the post; only what it can prove goes unlabelled.
+
+**Additional flags** the agent can pass when it knows better than to ask:
+`--endpoint`, `--model`, `--ladder`, `--quant`, `--engine`, `--engine-version`, `--hf`,
+`--fine-tuning`, `--real-name`, `--flags`, `--drafter`, `--model-max-context`, `--notes`, `--uuid-full`.
+Flags beat directories, directories beat guesses. If the session's own model sits behind the endpoint
+being measured, say so — that run is a smoke test, not a post.
+
+## How to see prior runs
+
+In an agent session, say **"show me the past BenchmarkLLMs runs"**. The
+[`benchmark-llms-history`](benchmark-llms-history/) skill reads the yaml block of every post in
+`BenchmarkLLMs-results/` and prints them as one table — model, quant, engine, cold and warm tok/s and
+TTFT, date — sorted fastest first. Same skill format as the benchmark itself, so install it the same way.
+
+## Install
+
+Symlink or copy this directory — **named `benchmark-llms/`**, some harnesses enforce that — into:
 
 | Harness | Put it in |
 |---|---|
@@ -46,73 +57,11 @@ implementations enforce that the directory matches `name:` in the frontmatter):
 | OpenCode / Codex CLI / Gemini CLI / Cursor | their skills dir, or `./.agents/skills/` |
 | anything else | `AGENTS.md` says where to look |
 
-Slash-command invocation (`/benchmark-llms`) works in pi; elsewhere the trigger is the skill
-`description`, so say "benchmark this model" instead of relying on the command existing.
+## The rules that make posts comparable
 
-## What the script fills, and who fills the rest
-
-One call each, ordered by fields-per-call, because for an agent every call is a tool
-round-trip:
-
-1. **Engine over HTTP** → model, quant, engine, version, flags (engines report their own
-   launch args), draft counters. Same code path on Linux, Windows, macOS, WSL, containers.
-2. **Vendor GPU CLI** (`nvidia-smi` — on Windows too — then `rocm-smi`, then
-   `vulkaninfo --summary`) → GPU name, **VRAM**, driver, NVML index, UUID.
-3. **`fastfetch --format json`** → OS, CPU, RAM, in one call. Not used for GPU: on Linux it
-   reports no VRAM for NVIDIA, and it lists cards in DRM order, which is not NVML order.
-4. **Platform fallbacks** if fastfetch is absent (`/proc`, `lscpu`, `system_profiler`,
-   PowerShell CIM).
-
-The agent fills the `Harness:` block from its own config — no command can know it — and
-`Additional Notes (human):` from what it noticed. Everything else is the script's.
-
-## Also in this repo: `benchmark-llms-history/`
-
-Its own skill, for the curve rather than the post: `scripts/history.py` reads the fenced `yaml` block
-of every post in `BenchmarkLLMs-results/` (that folder holds *your* posts and is gitignored, so your
-results never leave your machine with the skill) and prints the table — LLM, quant, engine, engine version,
-cold and warm tok/s, cold and warm TTFT, date — once rendered for reading and once fenced for
-copy-paste, sorted by tok/s highest first. Install it the same way, named `benchmark-llms-history/`.
-
-The last screen of a run **is the reply**: the greeting, the results to read, the same post fenced
-for copy-pasting into the subreddit, the start/end/total time, and any question nobody answered. The
-header numbers are the fixed ladder point (medians across tasks); `Warm` is that point, `cold` is the
-`0` baseline. Pass it on as it is.
-
-## The part that makes posts comparable
-
-In `references/schema.md` and pinned on the subreddit. Fixed prompts (hashed), default ladder
-48k (`0,16384,32768,49152,65536` opt-in), `batch: 1`, `prefix_cache: off`, `temperature: 0`, `seed: 1234`,
-`n: 3` median, warmup 1, `max_tokens: 256`, units in the field names, enums pinned. Check
-`model_max_context` before the ladder and **skip** a point that does not fit — never clamp it.
-
-## Run it from somewhere that is not the model you are measuring
-
-```sh
-scripts/benchmarkllms.sh /path/to/engine-dir /path/to/your-harness --out BenchmarkLLMs-results/<model>_<quant>_<YYYY-MM-DD>.md
-```
-
-Positional args are directories, and they beat endpoint guessing: only the manifest and git
-*inside* a fork's directory can name a fork (flags beat directories, directories beat guesses).
-If your own session is served by the engine under test, the script says so
-(`measurement.self_contention: true`) — that run is a smoke test, not a post, because your
-inference is in the queue for every request. Run it from a second terminal for a publishable
-number, and keep the polling at one blocking call: nothing polls, the shell tool waits for the
-script to finish.
-
-**Privacy, in the posted block:** GPU uuid truncated to 8 chars (`--uuid-full` for your local
-record), endpoint keeps the port and drops the host, `notes` is yours — do not put a model path
-in it.
-
-## What it cannot know
-
-- Engine detection is best-effort; override with `--engine`, `--engine-version`, `--quant`,
-  `--hf`, `--flags`, `--drafter`, `--model-max-context`, `--notes`, `--real-name`,
-  `--fine-tuning`. Flags always win. What a flag cannot know, the questionnaire asks — and remembers.
-- A router in front of the engine (llama-swap, LiteLLM, OpenRouter) can point one stable
-  alias at a different model on a different day, and may not forward the cache-busting field —
-  so ladder points can be warm. Say so in `Additional Notes (human):`.
-- No tokenizer dependency, so ladder padding is approximate and `actual_ctx` is the engine's
-  own count, not the target.
-- `decode_tps` needs an engine that reports draft counters or usage tokens; otherwise the
-  client-side measurement around the request is used and `source:` says which.
+Pinned in [`references/schema.md`](references/schema.md) and on the subreddit: the fixed prompts, the
+default ladder, `batch: 1`, `prefix_cache: off`, `temperature: 0`, `seed: 1234`, `n: 3` median, the
+field names and their units, the enums. Check the model's max context before the ladder and skip a
+point that does not fit — never clamp it. In the posted block, GPU uuids are truncated to 8 characters
+and the endpoint keeps the port but drops the host; the `notes` field is yours, so don't put a model
+path in it.
