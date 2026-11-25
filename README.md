@@ -17,12 +17,9 @@ In Pi:
 /skill:benchmark-llms
 ```
 
-In any other harness, say **"benchmark this model"**. The skill tells the agent to ask you any open
-questions first, then run:
-
-```sh
-scripts/benchmarkllms.sh --out BenchmarkLLMs-results/<model>_<quant>_<YYYY-MM-DD>.md
-```
+In any other harness, say **"benchmark this model"**. That's the whole interface: the agent runs the
+script for you, asks you any open questions first, and saves a copy of the post in
+`BenchmarkLLMs-results/<model>_<quant>_<YYYY-MM-DD>.md`.
 
 The script's last screen is the reply: readable results, the post fenced for copy-pasting, the timings,
 and any question nobody answered. Paste it into the subreddit.
