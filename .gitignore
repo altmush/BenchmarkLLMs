@@ -1,0 +1,8 @@
+# Your posts are your own data: the history skill reads this folder locally, so nothing in it is
+# published with the skill.
+BenchmarkLLMs-results/*
+!BenchmarkLLMs-results/.gitkeep
+
+# scratch a run can leave behind
+*.tmp
+.DS_Store

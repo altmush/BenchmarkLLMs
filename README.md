@@ -66,7 +66,8 @@ The agent fills the `Harness:` block from its own config — no command can know
 ## Also in this repo: `benchmark-llms-history/`
 
 Its own skill, for the curve rather than the post: `scripts/history.py` reads the fenced `yaml` block
-of every post in `BenchmarkLLMs-results/` and prints the table — LLM, quant, engine, engine version,
+of every post in `BenchmarkLLMs-results/` (that folder holds *your* posts and is gitignored, so your
+results never leave your machine with the skill) and prints the table — LLM, quant, engine, engine version,
 cold and warm tok/s, cold and warm TTFT, date — once rendered for reading and once fenced for
 copy-paste, sorted by tok/s highest first. Install it the same way, named `benchmark-llms-history/`.
 
