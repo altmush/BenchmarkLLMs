@@ -11,8 +11,14 @@ Works in any harness with a shell tool: pi, Claude Code, OpenCode, Codex CLI, Ge
 
 ## How to run it
 
-In an agent session, say **"benchmark this model"** (or `/benchmark-llms` in pi). The skill tells the
-agent to ask you any open questions first, then run:
+In Pi:
+
+```
+/skill:benchmark-llms
+```
+
+In any other harness, say **"benchmark this model"**. The skill tells the agent to ask you any open
+questions first, then run:
 
 ```sh
 scripts/benchmarkllms.sh --out BenchmarkLLMs-results/<model>_<quant>_<YYYY-MM-DD>.md
@@ -41,7 +47,13 @@ being measured, say so — that run is a smoke test, not a post.
 
 ## How to see prior runs
 
-In an agent session, say **"show me the past BenchmarkLLMs runs"**. The
+In Pi:
+
+```
+/skill:benchmark-llms-history
+```
+
+Elsewhere, say **"show me the past BenchmarkLLMs runs"**. The
 [`benchmark-llms-history`](benchmark-llms-history/) skill reads the yaml block of every post in
 `BenchmarkLLMs-results/` and prints them as one table — model, quant, engine, cold and warm tok/s and
 TTFT, date — sorted fastest first. Same skill format as the benchmark itself, so install it the same way.
