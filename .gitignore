@@ -6,3 +6,4 @@ BenchmarkLLMs-results/*
 # scratch a run can leave behind
 *.tmp
 .DS_Store
+__pycache__/

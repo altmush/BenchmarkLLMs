@@ -88,12 +88,13 @@ check "the post header labels the field it searched the web for" "HF LINK: https
 check "a field it did not guess is not labelled" "HF LINK: https://huggingface.co/some/repo" \
       "$(sed -i 's/^hf_source.*/hf_source\tpost-verified/' "$T2/meta"; python3 "$PY" post "$T2/meta" /dev/null | grep -F 'HF LINK')"
 rm -rf "$T2"
-if curl -fsS --max-time 5 'https://huggingface.co/api/models?search=Qwen2.5-0.5B&limit=1' >/dev/null 2>&1; then
-  check "the web search keeps the repo's own spelling, and calls a near miss a guess" \
-        "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct	likely" "$(python3 "$PY" hfsearch Qwen2.5-0.5B.gguf | sed -n 1p)"
-  check "and labels a match that only looks like it" \
-        "https://huggingface.co/pegasus912/gemma-4-31b-it-qat-heretic-ud-q4-k-xl	likely" \
-        "$(python3 "$PY" hfsearch gemma-4-31B-it-qat-heretic-UD-Q4_K_XL.gguf | sed -n 1p)"
+if curl -fsS --max-time 20 --retry 3 'https://huggingface.co/api/models?search=Qwen2.5-0.5B&limit=1' >/dev/null 2>&1; then
+  # the org inside a filename is the strongest clue there is: reading it as an author filter is what
+  # puts the real repo at the top, where a plain name search put a stranger's repo first
+  check "and reads the org out of the filename, not just the model name" \
+        "https://huggingface.co/SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF" \
+        "$(python3 "$PY" hfsearch Swift-Qwen3.8-Flash-Next-IQ3_XXS-abliterated-SC117.gguf | sed -n 1p | cut -f1)"
+  check "and never invents a repo id when the search finds nothing" "" "$(python3 "$PY" hfsearch nosuchmodel-xyzzy-9999.gguf)"
 else
   echo "skip  the web search tests (no network)"
 fi

@@ -129,7 +129,7 @@ HF=${HF_F:-$(pv hf)}; HFSRC=flag
 [ -z "$HF" ] && [ -n "$HF_DIR" ] && { HF=$HF_DIR; HFSRC=cache; }
 [ -z "$HF" ] && [ -n "$MD" ] && HF=$(printf '%s' "$MD" | pj "general.basename")
 [ -z "$HF" ] && HF=$(printf '%s' "$SERVED" | pj "data.0.meta.hf_repo")
-[ -z "$HF" ] && { HF=$(printf '%s' "$HITS" | sed -n '1p|s/\t.*//p'); HFSRC=$(printf '%s' "$HITS" | sed -n '1p|s/.*\t//p'); }
+[ -z "$HF" ] && { HF=$(printf '%s' "$HITS" | sed -n '1!d;s/\t.*//;p'); HFSRC=$(printf '%s' "$HITS" | sed -n '1!d;s/.*\t//;p'); }   # an exact match is used as-is; a likely one is a question, not a fact
 [ -z "$HFSRC" ] && HF=unknown
 if [ "$MAXCTX" = unknown ]; then
   MAXCTX=$(printf '%s' "$SERVED" | pj "data.0.meta.n_ctx")
@@ -222,6 +222,9 @@ if [ "$ASK" = 1 ]; then
   ask() { q=$((q + 1)); printf '  %s. %s\n' "$q" "$1"; shift; [ $# -gt 0 ] && printf '     -> %s\n' "$(printf '%s' "$*" | tr ' ' '\n' | awk 'NF{printf "%s%s", (n++ ? " | " : ""), $0} END{if (n) print ""}')"; }
   opts() { printf '%s' "$*" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | tr '\n' ' ' | sed 's/ $//'; }   # a guess first, then the pinned list, no option twice
   src3() { if [ -n "$1" ]; then echo flag; elif [ -n "$(pv "$2")" ]; then echo saved; elif [ "$3" = dir ]; then echo dir; else echo 'nothing yet'; fi; }
+  # a saved answer was given by a human, so it is not asked twice; only a guess from a filename, a
+  # config or the endpoints gets confirmed
+  fresh() { [ -n "$1" ] && return 1; [ -n "$(pv "$2")" ] && return 1; [ "$3" = saved ] && return 1; case "${3:-}" in dir) return 1;; esac; return 0; }
   echo "What I found about ${SEND:-this endpoint}:"
   printf '  model:  %s  [%s]\n'  "${REAL:-unknown}" "$(src3 "$REALNAME_F" real_name "$RSRC")"
   printf '  quant:  %s  [%s]\n'  "$QUANT" "$(src3 "$QUANT_F" quant '')"
@@ -232,22 +235,30 @@ if [ "$ASK" = 1 ]; then
   printf '  harness: %s   tools: %s   alias: %s\n' "${H_NAME:-unknown}" "${H_TOOLS:-unknown}" "${H_ALIAS:-unknown}"
   printf '  profile: %s\n' "$([ -f "$PROFILE" ] && printf '%s [key: %s]' "$PROFILE" "$KEY" || echo 'none yet')"
   echo
-  if [ -z "$REALNAME_F" ]; then   # one question per field whose value is not something the caller stated: a saved answer or a probe is a guess, and a guess on a published post gets confirmed first
-    if [ "$RSRC" = alias ]; then
-      if [ -n "$CAND" ]; then ask "The endpoint serves \"$SEND\", which is a llama-swap alias. Which model is it really?" $(opts "$CAND" $MDLIST)
-      else ask "The endpoint serves \"$SEND\", which is a llama-swap alias. Which model is it really (full name as spelled — no nicknames)?" $MDLIST; fi
-    else ask "Is the model really $REAL ($( [ -n "$(pv real_name)" ] && echo 'your saved answer' || echo "what the $([ "$RSRC" = probe ] && echo config || echo filename) says"))?" $(opts "$CAND" $MDLIST); fi
-  fi
-  if [ -n "$QUANT_F" ]; then :; elif [ "$QUANT" = unknown ]; then ask "What is the quantisation?" $QQUANT
-  else ask "Is the quantisation $QUANT ($( [ -n "$(pv quant)" ] && echo 'your saved answer' || echo 'what the filename says' ))?" "$(opts "$QUANT" $QQUANT)"; fi
-  [ -n "$ENGINE_F" ] || ask "Which engine is actually serving it$( [ "$ENGINE_FINAL" = unknown ] || echo " — I read it as $ENGINE_FINAL ($( [ -n "$(pv engine)" ] && echo 'your saved answer' || echo 'the endpoints, which a fork can fake'))")?" "$(opts "$ENGINE_FINAL" $QENGINE)"
-  [ -n "$EVERSION_F" ] || ask "What is that engine's version$( [ "$ENGINE_V" = unknown ] || echo " — it reported $ENGINE_V, confirm it")?"
-  [ -n "$FT_F" ] || { [ "$FT" = unknown ] && ask "Any fine tuning (framework/method, if any)?" $QFT \
-    || ask "Is the fine tuning $FT ($( [ -n "$(pv fine_tuning)" ] && echo 'your saved answer' || echo 'what the filename says' ))?" "$(opts "$FT" $QFT)"; }
-  [ -n "$HF_F" ] || [ -z "$HITS" ] || { ask "Which is the Hugging Face repo? (the search found these)" \
-    "$(printf '%s' "$HITS" | awk -F'\t' '{printf "%s|%s\n", $1, ($2=="exact"?"certain":"likely")}')"; }
-  [ -n "$H_NAME" ] || ask "Which harness is driving this run?"
-  [ -n "$H_TOOLS" ] || ask "Which tools does it expose?"
+  if [ -n "$REALNAME_F" ] || [ -n "$(pv real_name)" ]; then :   # flagged or already answered: not a question
+  elif [ "$RSRC" = alias ]; then
+    if [ -n "$CAND" ]; then ask "The endpoint serves \"$SEND\", which is a llama-swap alias. Which model is it really?" $(opts "$CAND" $MDLIST)
+    elif [ -n "$MDLIST" ]; then ask "The endpoint serves \"$SEND\", which is a llama-swap alias. Which model is it really (full name as spelled — no nicknames)?" $MDLIST
+    else ask "Which model is behind the \"$SEND\" alias (full name as spelled)?"; fi
+  else ask "Is the model really $REAL (that is what the $([ "$RSRC" = probe ] && echo config || echo filename) says)?" "$MDLIST"; fi
+  if [ -n "$QUANT_F" ] || [ -n "$(pv quant)" ]; then :
+  elif [ "$QUANT" = unknown ]; then ask "What is the quantisation?" $QQUANT
+  else ask "Is the quantisation $QUANT (that is what the filename says)?" "$(opts "$QUANT" $QQUANT)"; fi
+  if [ -n "$ENGINE_F" ] || [ -n "$(pv engine)" ]; then :
+  elif [ "$ENGINE_FINAL" = unknown ]; then ask "Which engine is serving this endpoint?" $QENGINE
+  else ask "Is the engine really $ENGINE_FINAL (that is what the endpoints answer, and a fork can fake it)?" "$(opts "$ENGINE_FINAL" $QENGINE)"; fi
+  if [ -n "$EVERSION_F" ] || [ -n "$(pv engine_version)" ]; then :
+  elif [ "$ENGINE_V" = unknown ]; then ask "What is that engine's version?"
+  else ask "Confirm the engine version $ENGINE_V (it is what the engine reported)"; fi
+  if [ -n "$FT_F" ] || [ -n "$(pv fine_tuning)" ]; then :
+  elif [ "$FT" = unknown ]; then ask "Any fine tuning (framework/method, if any)?" $QFT
+  else ask "Is the fine tuning $FT (that is what the filename says)?" "$(opts "$FT" $QFT)"; fi
+  if [ -n "$HF_F" ] || [ -n "$(pv hf)" ]; then :; elif [ -z "$HITS" ]; then :
+  elif [ "$(printf '%s' "$HITS" | sed -n '1!d;s/.*\t//;p')" = exact ]; then :   # the org, the tuner words and the quant folder all line up: no question needed
+  else ask "Which is the Hugging Face repo? (the search found these)" \
+    "$(printf '%s' "$HITS" | awk -F'\t' '{printf "%s|%s\n", $1, ($2=="exact"?"certain":"likely")}')"; fi
+  if [ -n "$H_NAME" ] || [ -n "$(pv harness_name)" ]; then :; else ask "Which harness is driving this run?"; fi
+  if [ -n "$H_TOOLS" ] || [ -n "$(pv harness_tools)" ]; then :; else ask "Which tools does it expose?"; fi
   if [ "$q" = 0 ]; then echo "Nothing to ask — everything is known. Run it."; exit 0; fi
   echo
   echo "Then run it once with the answers, adding --save-profile so the next run remembers:"

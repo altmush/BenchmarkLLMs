@@ -1,5 +1,7 @@
 # BenchmarkLLMs
 
+![BenchmarkLLMs](<assets/GITHUB BANNER.png>)
+
 The same fields, the same units, the same prompts, the same ladder — for local LLM
 benchmarks. Post the output to [r/BenchmarkLLMs](https://reddit.com/r/BenchmarkLLMs).
 
@@ -26,8 +28,9 @@ script prints above the post: it is ready to paste into
 `--ask` runs the probes and prints a question for everything it cannot name: the real model behind
 a router alias, quant, engine, engine version, fine tuning. Multiple choice if your harness has it,
 a numbered list if it does not. `--save-profile` keeps the answers per endpoint+alias
-(`~/.config/benchmarkllms/profile.json`), so the next run there starts from them — as a guess to
-confirm, never as a fact. `--real-name`, `--quant`, `--engine`, `--engine-version`,
+(`~/.config/benchmarkllms/profile.json`), so the next run there starts from them and does not ask
+you twice. An answer nobody has given is a question; a field the search or a filename only *suggests*
+still gets confirmed, and the post says where each field came from. `--real-name`, `--quant`, `--engine`, `--engine-version`,
 `--fine-tuning`, `--swap-config`, `--model-dir` and `--profile` are the flags the answers turn into
 (`$BENCHMARKLLMS_SWAP_CONFIG`, `$BENCHMARKLLMS_MODEL_DIR`, `$BENCHMARKLLMS_PROFILE` when a harness
 cannot pass flags — the swap config is how a router alias gets resolved on its own, the model dir is

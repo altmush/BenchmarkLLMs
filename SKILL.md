@@ -36,8 +36,8 @@ scripts/benchmarkllms.sh --out BenchmarkLLMs-results/<model>_<quant>_<YYYY-MM-DD
 
 3. **Answer the questionnaire before the ladder.** Run `scripts/benchmarkllms.sh --ask` with the
    same endpoint and harness flags. It probes what it can and prints one question per field it
-   could not name (model name behind a router alias, quant, engine, engine version, fine tuning).
-   Ask those questions **as multiple choice** if your harness can, otherwise paste the numbered
+   could not name (model name behind a router alias, quant, engine, engine version, fine tuning) —
+   a field it already has your answer for is not a question. Ask those questions **as multiple choice** if your harness can, otherwise paste the numbered
    list as-is. Then run once with the answers as flags and add `--save-profile`, so the next run on
    this endpoint starts from them. Do not answer for the user from memory or vibes, and do not post
    a router nickname as the model name — the full name on the weight file is what carries the quant

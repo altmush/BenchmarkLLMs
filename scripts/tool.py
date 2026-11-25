@@ -6,6 +6,7 @@ Prints "unknown" for anything it cannot read — a missing probe is a field, not
 import collections, json, os, re, statistics, subprocess, sys, hashlib, urllib.parse
 
 U = "unknown"
+V = bool(os.environ.get("BML_VERBOSE"))   # debug only: what the web search actually asked for
 
 QUANT_TOKEN = re.compile(r"(?i)(?<![a-z0-9])(iq[0-9][a-z0-9_]*|q[0-9][a-z0-9_]*|n[ki][0-9][a-z0-9_]*|"
                          r"fp8|bf16|awq|gptq|compressed-tensors)(?![a-z0-9])")
@@ -198,7 +199,7 @@ def guessed(src):
     return {
         "probe": "  (identity guessed from endpoints — verify)",
         "alias": "  (the router's nickname, not a model name — the questionnaire asks the human)",
-        "profile": "  (from your saved answers — confirm)",
+        "profile": "  (from your saved answers)",
         "search": "  (likely)",   # a web search match is a strong guess, not a fact: keep the label
     }.get(src, "")
 
@@ -502,42 +503,59 @@ def profile(action, path, key, *pairs):
 
 
 def hfsearch(name):
-    """A filename is not a repo id, so ask huggingface.co's own search API. Family tokens only in the
-    query (a quant, a tuner and an uploader tag are not part of most repo names — SC117 is an org, not
-    a model), then rank the hits by the extra tokens they do carry. Keep the original spelling in the
-    query: the API is a search, not a checksum. A match is a strong guess, so the post labels it
-    `(likely)`; only a repo name equal to our own name is exact."""
-    stem = re.sub(r"\.[gG][gG][uU][fF]$", "", name)
-    toks = [t for t in re.split(r"[-_]", stem) if t]
-    lower = {t.lower(): t for t in toks}
-    family = [lower[t] for t in [x.lower() for x in toks]
-              if not QUANT_TOKEN.match(t) and t.lower() not in TUNING
-              and not re.fullmatch(r"[a-zA-Z]+[0-9]+[a-zA-Z]*", t)]
-    extra = {t.lower() for t in toks} - {t.lower() for t in family}
+    """A filename is not a repo id, so ask huggingface.co's own search API — but read the filename as
+    a spec sheet first: a token like `SC117` is an org, so it goes in as an author filter, and the
+    quant and tuner words are not part of most repo names, so they rank candidates instead of
+    identifying them. A candidate must carry every word the filename names; among those, the one
+    carrying the most of them wins, an exact-name candidate is `exact`, and the rest say so."""
+    stem = re.split(r"\.[gG][gG][uU][fF]$", name)[0]
+    m = QUANT_TOKEN.search(stem)
+    quant = m.group(1) if m else ""
+    toks = [t for t in re.split(r"[-_]", stem) if t]        # a dot belongs to a name (Qwen3.8); hyphens and underscores split fields
+    words = {t.lower() for t in toks}
+    qsegs = set(quant.lower().split("_")) if quant else set()
+    orgs = [t for t in toks if t.lower() not in qsegs and re.fullmatch(r"[A-Za-z]{2,}[0-9]{2,}[A-Za-z]*", t)]
+    tune = {t.lower() for t in toks if t.lower() in TUNING}
+    family = [t for t in toks if t.lower() not in qsegs and t not in orgs and t.lower() not in tune]
     if not family:
-        return
-    out = run(["curl", "-fsS", "--max-time", "10",
-               "https://huggingface.co/api/models?search=%s&limit=10" % urllib.parse.quote("-".join(family))])
-    try:
-        hits = json.loads(out)
-    except Exception:
-        return   # offline, or the API answered nothing; the field stays unknown
-    want = {t.lower() for t in family}
-    rankings = []
-    for h in hits:
-        rid = h.get("id") or ""
-        parts = set(re.split(r"[-_/]", rid.lower()))
-        if not want.issubset(parts):
-            continue   # a hit missing one family token is a different model wearing the name
-        s = len(want) + sum(1 for e in extra if e in parts)
-        if any(e == rid.split("/")[0].lower() for e in extra):
-            s += 1   # the uploader tag IS the namespace on a re-upload, which is a strong signal
-        rankings.append((rid, s))
-    ranked = sorted(rankings, key=lambda x: -x[1])[:3]   # the questionnaire offers the top few
-    exact_name = "-".join(toks).replace("-", "").lower()
-    for rid, s in ranked:
-        exact = rid.replace("/", "-").replace("-", "").lower() == exact_name
+        return   # nothing left that names a model: a size or a tag alone would search the whole site
+    q = urllib.parse.quote("-".join(family[:4]))
+    urls = ["https://huggingface.co/api/models?search=%s&limit=10" % q]
+    urls += ["https://huggingface.co/api/models?search=%s&author=%s&limit=10" % (q, urllib.parse.quote(o))
+             for o in orgs[:2]]   # the org named in the filename is the strongest clue there is
+    seen, hits = set(), []
+    for u in urls:
+        try:
+            for h in json.loads(run(["curl", "-fsS", "--retry", "2", "--retry-delay", "2", "--max-time", "20", u])):
+                rid = (h.get("id") or "").strip("/")
+                if rid and rid.lower() not in seen:
+                    seen.add(rid.lower())
+                    hits.append(rid)
+        except Exception as e:
+            if V:
+                print("search %s: %s" % (u, e), file=sys.stderr)   # offline, or the API answered nothing
+    want = {w for w in words if w not in {o.lower() for o in orgs}}   # every word the filename names, the org aside
+    ranked = []
+    for rid in hits:
+        parts = {w for part in rid.lower().split("/") for w in re.split(r"[-_]", part) if w}
+        if not {t.lower() for t in family}.issubset(parts):
+            continue   # a hit missing one family word is a different model wearing the name
+        name_part = rid.lower().split("/")[-1]
+        exact = (not want.issubset(parts)) or want.issubset({w for w in re.split(r"[-_]", name_part) if w})
+        org_ok = (not orgs) or rid.lower().split("/")[0] in {o.lower() for o in orgs}
+        score = len(words & parts) + (2 if org_ok and orgs else 0) + (1 if len(parts) == len(words) else 0)
+        ranked.append((-score, 0 if exact else 1, rid, exact))
+    for _, _, rid, exact in sorted(ranked)[:4]:
         print("https://huggingface.co/%s\t%s" % (rid, "exact" if exact else "likely"))
+
+
+def hf_tree(repo, sub=""):
+    try:   # the quant folder is the one worth listing: two repos can share a name and differ only inside it
+        return json.loads(run(["curl", "-fsS", "--retry", "2", "--retry-delay", "2", "--max-time", "20",
+                                "https://huggingface.co/api/models/%s/tree/main%s" %
+                                (repo, "/" + sub if sub else "")]))
+    except Exception:
+        return []   # cannot look, cannot claim
 
 
 def main():
