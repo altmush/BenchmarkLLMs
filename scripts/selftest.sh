@@ -130,7 +130,7 @@ check "so a line a human reads really breaks on reddit" "MODEL: Qwen3.8-Flash-Ne
 check "and the fenced yaml block stays plain for the machine" "" \
       "$(python3 "$PY" post "$T4/meta" "$T4/runs" | awk '/^```yaml/{f=1;next} f&&/  $/')"
 printf 'model\tModelA\nnotes\t\n' > "$T/empty-meta"
-check "and the human's notes field is left blank" "Additional Notes (human): \\" \
+check "and the human's notes field is left blank" "Additional Notes (human):" \
       "$(python3 "$PY" post "$T/empty-meta" /dev/null | grep -F 'Additional Notes' | strip)"
 rm -rf "$T4"
 exit $fail
