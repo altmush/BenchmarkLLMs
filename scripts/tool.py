@@ -284,16 +284,15 @@ def build_post(metafile, runsfile):
     warm = headline_numbers(runs)
     engine_name = (m["engine"] or U)
     engine_name = engine_name[0].upper() + engine_name[1:] if engine_name not in (U, "") else engine_name
-    tps = warm["tps"]
-    tps = "~%s TOK/s" % int(float(tps)) if str(tps).replace(".", "", 1).isdigit() else tps
-    a("# Reddit Post Title: %s - %s - %s - %s - %s"
-      % (short_name(m["model"]), m["quant"], engine_name, tps, title_gpus(gpus)))
+    title_at = len(A)
+    a("")   # the title gets the general task's number, so it is written after the tally below
+    title_quant = m["quant"].lower() if m["quant"] != U else m["quant"]
     a("")
     a("# TLDR")
     a("")
     a("## Model")
     a("MODEL: %s%s" % (m["model"], guessed(m["model_source"])))
-    a("QUANT: %s" % m["quant"])
+    a("QUANT: %s" % (m["quant"].lower() if m["quant"] != U else m["quant"]))
     a("Fine Tuning: %s" % m["fine_tuning"])
     a("HF LINK: %s%s" % (m["hf"], guessed(m["hf_source"])))
     a("Warm TTFT: %s" % warm["ttft"])
@@ -336,7 +335,7 @@ def build_post(metafile, runsfile):
     a("date: %s" % m["date"])
     a("model: %s" % json.dumps(m["model"]))
     a("model_source: %s" % json.dumps(m["model_source"]))
-    a("quant: %s" % json.dumps(m["quant"]))
+    a("quant: %s" % json.dumps(m["quant"].lower()))
     a("fine_tuning: %s" % json.dumps(m["fine_tuning"]))
     a("hf: %s" % json.dumps(m["hf"]))
     flags = m["flags"] if str(m["flags"]).startswith("[") else json.dumps(m["flags"])
@@ -408,15 +407,33 @@ def build_post(metafile, runsfile):
                 " draft %s, accepted %s" % (p["draft_tokens"], p["acceptance_rate"])
                 if p.get("draft_tokens") else ""))
         A[pos:pos] = rows + [""]
-    for t in sorted(tldr):
+    torder = sorted(tldr)
+    if "general" in tldr:   # general first on the page, since it is the number the title quotes
+        torder = [x for x in torder if x != "general"] + ["general"]   # inserted at the same spot, so built back-to-front
+    for t in torder:
         pts = ", ".join("~%s tok/s @ %dk" % (v, k // 1024) for k, v in sorted(tldr[t].items())
                         if v != U)
         A[4:4] = ["- %s decode: %s" % (t.capitalize(), pts or "no data"), ""]
+    gdec = max((v for pt, v in sorted(tldr.get("general", {}).items()) if v != U), default=warm["tps"])
+    def fmtnum(x):
+        return "~%s TOK/s" % round(float(x)) if str(x).replace(".", "", 1).isdigit() else x
+    A[title_at] = "# Reddit Post Title: %s - %s - %s - %s - %s" % (
+        short_name(m["model"]), m["quant"].lower() if m["quant"] != U else m["quant"],
+        engine_name, fmtnum(gdec), title_gpus(gpus))
     a('quality: {task: general, pass: 0, of: 0}')
     a('notes: %s' % json.dumps(m.get('notes') or ''))
     a("```")
     a("")
     a("Benchmarked with [BenchmarkLLMs](https://github.com/altmush/BenchmarkLLMs)")
+    # Reddit renders a single newline as a space, so every line of the part a human reads needs a
+    # hard break. Inside the ```yaml fence it would show as whitespace, so that block is left alone.
+    fence = A.index("```yaml")
+    def brk(l):
+        t = l.strip()
+        if not t or t.startswith("#") or t.startswith("|") or t.startswith("- "):
+            return l   # headings, tables and list items break on their own
+        return l + "\\"
+    A[:fence] = [brk(l) if l.strip() else l for l in A[:fence]]
     post_text = "\n".join(A)
     return post_text
 

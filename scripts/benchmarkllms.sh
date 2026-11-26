@@ -322,7 +322,9 @@ META=$(mktemp)
 { kv schema benchmarkllms/v2; kv date "$(date -u +%F)"
   kv model "$REAL"; kv model_source "$RSRC"; kv quant "$QUANT"; kv fine_tuning "$FT"
   kv hf "${HF_F:-$HF}"; kv hf_source "$( [ -n "$HF_F" ] && echo flag || echo "${HFSRC:-$(pv hf | grep -q . && echo profile || echo unknown)}")"
-  kv drafter "${DRAFTER_F:-unknown}"; kv flags "${FLAGS_F:-$FLAGS}"; kv notes "${NOTES_F:-}"
+  kv drafter "${DRAFTER_F:-unknown}"; kv flags "${FLAGS_F:-$FLAGS}"
+  printf 'notes	%s
+' "$NOTES_F"   # the human's own field: blank until they write it, never kv's 'unknown'
   kv engine_source "$ENGINE_S"
   kv engine "$ENGINE_FINAL"; kv engine_version "$ENGINE_V"
   kv engine_commit "${ENGINE_DIR_COMMIT:-unknown}"; kv engine_remote "${ENGINE_DIR_REMOTE:-unknown}"
@@ -344,7 +346,7 @@ META=$(mktemp)
 POST=$(python3 "$PY" post "$META" "$RUNS")
 if [ "$SAVE_PROFILE" = 1 ]; then   # the next run on this endpoint starts from these answers
   python3 "$PY" profile set "$PROFILE" "$KEY" "real_name=$REALNAME_F" "quant=$QUANT_F" \
-    "engine=$ENGINE_F" "engine_version=$EVERSION_F" "fine_tuning=$FT_F" \
+    "engine=$ENGINE_F" "engine_version=$EVERSION_F" "fine_tuning=$FT_F" "hf=$HF_F" \
     "harness_name=$H_NAME" "harness_tools=$H_TOOLS" >&2
 fi
 if [ -n "$OUT" ]; then mkdir -p "$(dirname "$OUT")"; printf '%s\n' "$POST" > "$OUT"; printf 'wrote %s\n' "$OUT" >&2; fi

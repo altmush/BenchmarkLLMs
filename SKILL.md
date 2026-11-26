@@ -65,14 +65,17 @@ greeting.
    If the script stops before making a request, the point does not fit the model's context.
    Tell the user to raise `max_context_window` or benchmark a lower ladder, and do not silently
    run a lower point for them — that is their decision, and the post says which point it is.
-5. Fill **`Additional Notes (human):`** — it is the human's field and the only prose in the
-   post. Put anything that would change a reader's conclusion there (offloading, throttling, a
-   point that did not fit, a warm cache, an engine name you had to pass by hand, a questionnaire
-   answer you were given).
+5. **Leave `Additional Notes (human):` blank.** It is the human's field and the only prose in the
+   post, so the script prints it empty and you do not fill it with your own prose. Say anything
+   that would change a reader's conclusion (offloading, throttling, a point that did not fit, a
+   warm cache, an engine name you had to pass by hand, a questionnaire answer you were given) in
+   your reply to them instead, and let them write the field before they post.
 6. **The script's last screen is the reply. Pass it on** — greeting, the results to read, the same
    post fenced for pasting into the subreddit, the timings, and any question nobody answered. Do not
    reshuffle it into your own format; the fenced `yaml` block at the bottom is part of the post (it is
-   what makes posts searchable) and must stay machine-readable.
+   what makes posts searchable) and must stay machine-readable. Pass the fenced block verbatim: its
+   lines end in a backslash so Reddit keeps each field on its own line, so do not re-wrap it or
+   strip that trailing backslash.
 7. Answer the follow-up questions it lists before handing the post over as final; if there are none,
    say so in one line.
 
@@ -83,7 +86,7 @@ greeting.
 - Report `unknown` for anything you cannot read. Never guess, never fail the run.
 - Any field whose units are in the schema (`tok/s`, `GB`, `s`) keeps those units.
 - The ladder must stay cold: the script disables prefix cache per request. If your engine
-  ignores that, say so in `Additional Notes (human):`.
+  ignores that, say so in your reply — the notes field stays the human's.
 - `references/schema.md` is the field reference and enum list. Read it before changing a
   field name, a unit, or an enum value — the schema is shared with the subreddit.
 - `Fine Tuning:` is a row of the post. It is filled from the name on the weight file, from a saved

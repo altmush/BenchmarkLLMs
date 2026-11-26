@@ -6,6 +6,7 @@ PY="$(cd "$(dirname "$0")" && pwd)/tool.py"
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 fail=0
 check() { if [ "$2" = "$3" ]; then echo "ok   $1"; else echo "FAIL $1: got '$2' want '$3'"; fail=1; fi; }
+strip() { sed 's/[[:space:]]*$//'; }   # the post ends the lines a human reads with a markdown hard break
 ni() { python3 "$PY" nameinfo "$1" | sed -n "s/^$2\t//p"; }
 
 check "quant in the middle of a long name" "IQ3_XXS" "$(ni Swift-Qwen3.8-Flash-Next-IQ3_XXS-abliterated-SC117.gguf quant)"
@@ -79,14 +80,14 @@ for n in 1 2 3; do
   printf 'coding\t49152\taaa\tM\tE\t48000\t256\t%s\t%s\t%s\t200\t0\t0\t400\t%s\n' \
          "$((1000 + n * 100))" "$((2560 - n * 100))" "$n" "$((2560 - n * 100))" >> "$T2/runs"
 done
-check "post header prints the median at the ladder point, per task" "Warm TOK/s: 108.5" \
-      "$(python3 "$PY" post "$T2/meta" "$T2/runs" | grep -F 'Warm TOK/s')"
-check "and the median TTFT" "Warm TTFT: 0.4 s" \
-      "$(python3 "$PY" post "$T2/meta" "$T2/runs" | grep -F 'Warm TTFT')"
-check "the post header labels the field it searched the web for" "HF LINK: https://huggingface.co/some/repo  (likely)" \
-      "$(python3 "$PY" post "$T2/meta" /dev/null | grep -F 'HF LINK')"
-check "a field it did not guess is not labelled" "HF LINK: https://huggingface.co/some/repo" \
-      "$(sed -i 's/^hf_source.*/hf_source\tpost-verified/' "$T2/meta"; python3 "$PY" post "$T2/meta" /dev/null | grep -F 'HF LINK')"
+check "post header prints the median at the ladder point, per task" "Warm TOK/s: 108.5\\" \
+      "$(python3 "$PY" post "$T2/meta" "$T2/runs" | grep -F 'Warm TOK/s' | strip)"
+check "and the median TTFT" "Warm TTFT: 0.4 s\\" \
+      "$(python3 "$PY" post "$T2/meta" "$T2/runs" | grep -F 'Warm TTFT' | strip)"
+check "the post header labels the field it searched the web for" "HF LINK: https://huggingface.co/some/repo  (likely)\\" \
+      "$(python3 "$PY" post "$T2/meta" /dev/null | grep -F 'HF LINK' | strip)"
+check "a field it did not guess is not labelled" "HF LINK: https://huggingface.co/some/repo\\" \
+      "$(sed -i 's/^hf_source.*/hf_source\tpost-verified/' "$T2/meta"; python3 "$PY" post "$T2/meta" /dev/null | grep -F 'HF LINK' | strip)"
 rm -rf "$T2"
 if curl -fsS --max-time 20 --retry 3 'https://huggingface.co/api/models?search=Qwen2.5-0.5B&limit=1' >/dev/null 2>&1; then
   # the org inside a filename is the strongest clue there is: reading it as an author filter is what
@@ -107,7 +108,7 @@ T3=$(mktemp -d)
   printf 'model\tsuccess\nhf_source\tpost-verified\nbench_start\t2026-11-25T14:41:02Z\nbench_end\t2026-11-25T14:52:10Z\ntotal_time_s\t668s\n' >> "$T3/meta"
   printf 'coding\t49152\taaa\tM\tE\t48000\t256\t1100\t2327\t1\t200\t0\t0\t400\t2200\n' >> "$T3/runs"
 } > "$T3/meta"
-check "the reply ends with the timings and the open questions" "Total Time for Benchmark: 668s" \
+check "the reply ends with the timings and the open questions" "Total Time for Benchmark: 668s\\" \
       "$(python3 "$PY" post "$T3/meta" "$T3/runs" reply | grep -m1 -F 'Total Time')"
 check "the reply fences the post so it survives copy-paste" '````markdown' \
       "$(python3 "$PY" post "$T3/meta" "$T3/runs" reply | grep -m1 -F '````markdown')"
@@ -122,7 +123,14 @@ T4=$(mktemp -d)
 for n in 1 2 3; do printf 'coding\t49152\taaa\tM\tE\t43664\t256\t0.11\t2.74\t%s\t200\t0\t0\t150\t2590\n' "$n"; done > "$T4/runs"
 for n in 1 2 3; do printf 'general\t49152\tbbb\tM\tE\t43647\t256\t0.10\t2.87\t%s\t200\t0\t0\t120\t2750\n' "$n"; done >> "$T4/runs"
 check "the title is short name, quant, engine, median tok/s and cards — not the whole filename" \
-      "# Reddit Post Title: Qwen3.8 - IQ3_XXS - Strata - ~95 TOK/s - V100(16gb) + 2x3060s(12gb)" \
-      "$(python3 "$PY" post "$T4/meta" "$T4/runs" | sed -n 1p)"
+      "# Reddit Post Title: Qwen3.8 - iq3_xxs - Strata - ~93 TOK/s - V100(16gb) + 2x3060s(12gb)" \
+      "$(python3 "$PY" post "$T4/meta" "$T4/runs" | sed -n 1p | strip)"
+check "so a line a human reads really breaks on reddit" "MODEL: Qwen3.8-Flash-Next-GSQ-RCO-abliterated-IQ3_XXS\\" \
+      "$(python3 "$PY" post "$T4/meta" "$T4/runs" | grep -m1 -F 'MODEL:')"
+check "and the fenced yaml block stays plain for the machine" "" \
+      "$(python3 "$PY" post "$T4/meta" "$T4/runs" | awk '/^```yaml/{f=1;next} f&&/  $/')"
+printf 'model\tModelA\nnotes\t\n' > "$T/empty-meta"
+check "and the human's notes field is left blank" "Additional Notes (human): \\" \
+      "$(python3 "$PY" post "$T/empty-meta" /dev/null | grep -F 'Additional Notes' | strip)"
 rm -rf "$T4"
 exit $fail
