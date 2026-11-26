@@ -428,12 +428,14 @@ def build_post(metafile, runsfile):
     # Reddit renders a single newline as a space, so every line of the part a human reads needs a
     # hard break. Inside the ```yaml fence it would show as whitespace, so that block is left alone.
     fence = A.index("```yaml")
-    def brk(l):
-        t = l.strip()
+    def brk(i):
+        t = A[i].strip()
         if not t or t.startswith("#") or t.startswith("|") or t.startswith("- "):
-            return l   # headings, tables and list items break on their own
-        return l + "\\"
-    A[:fence] = [brk(l) if l.strip() else l for l in A[:fence]]
+            return A[i]   # headings, tables and list items break on their own
+        if i + 1 < fence and not A[i + 1].strip():
+            return A[i]   # the blank line already breaks it, a backslash on top is noise
+        return A[i] + "\\"
+    A[:fence] = [brk(i) for i in range(fence)]
     post_text = "\n".join(A)
     return post_text
 

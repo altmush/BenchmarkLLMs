@@ -80,7 +80,7 @@ for n in 1 2 3; do
   printf 'coding\t49152\taaa\tM\tE\t48000\t256\t%s\t%s\t%s\t200\t0\t0\t400\t%s\n' \
          "$((1000 + n * 100))" "$((2560 - n * 100))" "$n" "$((2560 - n * 100))" >> "$T2/runs"
 done
-check "post header prints the median at the ladder point, per task" "Warm TOK/s: 108.5\\" \
+check "post header prints the median at the ladder point, per task" "Warm TOK/s: 108.5" \
       "$(python3 "$PY" post "$T2/meta" "$T2/runs" | grep -F 'Warm TOK/s' | strip)"
 check "and the median TTFT" "Warm TTFT: 0.4 s\\" \
       "$(python3 "$PY" post "$T2/meta" "$T2/runs" | grep -F 'Warm TTFT' | strip)"
@@ -108,7 +108,7 @@ T3=$(mktemp -d)
   printf 'model\tsuccess\nhf_source\tpost-verified\nbench_start\t2026-11-25T14:41:02Z\nbench_end\t2026-11-25T14:52:10Z\ntotal_time_s\t668s\n' >> "$T3/meta"
   printf 'coding\t49152\taaa\tM\tE\t48000\t256\t1100\t2327\t1\t200\t0\t0\t400\t2200\n' >> "$T3/runs"
 } > "$T3/meta"
-check "the reply ends with the timings and the open questions" "Total Time for Benchmark: 668s\\" \
+check "the reply ends with the timings and the open questions" "Total Time for Benchmark: 668s" \
       "$(python3 "$PY" post "$T3/meta" "$T3/runs" reply | grep -m1 -F 'Total Time')"
 check "the reply fences the post so it survives copy-paste" '````markdown' \
       "$(python3 "$PY" post "$T3/meta" "$T3/runs" reply | grep -m1 -F '````markdown')"

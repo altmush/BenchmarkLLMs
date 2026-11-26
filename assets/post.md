@@ -43,7 +43,8 @@ Benchmark End Time: `<UTC>`\
 Total Time for Benchmark: `<seconds>`\
 
 Every field line above ends with `\` — reddit renders a single newline as a space, and the backslash
-is what makes each field its own line. Headings, the table and the list items break on their own.
+is what makes each field its own line — except the last line of a block, which needs none.
+Headings, the table and the list items break on their own.
 The fenced `yaml` block below is part of the post and stays plain. Leave it in — it is what makes posts
 searchable, and the skill writes it for you.
 
