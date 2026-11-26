@@ -127,8 +127,17 @@ check "the title is short name, quant, engine, median tok/s and cards — not th
       "$(python3 "$PY" post "$T4/meta" "$T4/runs" | sed -n 1p | strip)"
 check "so a line a human reads really breaks on reddit" "MODEL: Qwen3.8-Flash-Next-GSQ-RCO-abliterated-IQ3_XXS\\" \
       "$(python3 "$PY" post "$T4/meta" "$T4/runs" | grep -m1 -F 'MODEL:')"
+check "the saved post always carries the machine block, so history can read it" '```yaml' \
+      "$(python3 "$PY" post "$T4/meta" "$T4/runs" | grep -m1 '^```yaml')"
 check "and the fenced yaml block stays plain for the machine" "" \
       "$(python3 "$PY" post "$T4/meta" "$T4/runs" | awk '/^```yaml/{f=1;next} f&&/  $/')"
+check "the reply hides it unless --yaml asks for it" "" \
+      "$(python3 "$PY" post "$T4/meta" "$T4/runs" reply | grep -m1 '^```yaml')"
+check "and shows it when asked" '```yaml' \
+      "$(BENCHMARKLLMS_YAML=1 python3 "$PY" post "$T4/meta" "$T4/runs" reply | grep -m1 '^```yaml')"
+check "and the saved post still ends on the attribution line, no stray backslash" \
+      "Benchmarked with [BenchmarkLLMs](https://github.com/altmush/BenchmarkLLMs)" \
+      "$(python3 "$PY" post "$T4/meta" "$T4/runs" | tail -1)"
 printf 'model\tModelA\nnotes\t\n' > "$T/empty-meta"
 check "and the human's notes field is left blank" "Additional Notes (human):" \
       "$(python3 "$PY" post "$T/empty-meta" /dev/null | grep -F 'Additional Notes' | strip)"

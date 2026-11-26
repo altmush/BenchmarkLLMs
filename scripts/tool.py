@@ -265,7 +265,7 @@ def title_gpus(gpus):
             -(x[0][1] if isinstance(x[0][1], int) else -1), -x[1], x[0][0])))
 
 
-def build_post(metafile, runsfile):
+def build_post(metafile, runsfile, with_yaml=True):
     m = collections.defaultdict(lambda: U)   # a field nobody filled is `unknown`, not a crash
     for line in open(metafile):
         p = line.rstrip("\n").split("\t")
@@ -330,6 +330,9 @@ def build_post(metafile, runsfile):
     a("Benchmark End Time: %s" % (m["bench_end"] or U))
     a("Total Time for Benchmark: %s" % (m["total_time_s"] or U))
     a("")
+    # the machine block is always generated (the history tool reads it); the reply hides it unless
+    # `--yaml`, so the saved post and the pasted post can differ
+    yaml_on = with_yaml
     a("```yaml")
     a("schema: %s" % m["schema"])
     a("date: %s" % m["date"])
@@ -424,10 +427,12 @@ def build_post(metafile, runsfile):
     a('notes: %s' % json.dumps(m.get('notes') or ''))
     a("```")
     a("")
+    if not yaml_on:   # the block is the tail here, so its own fence is the anchor (the table and the
+        del A[A.index("```yaml"):]   # TLDR were inserted in front of it, which moved the index)
     a("Benchmarked with [BenchmarkLLMs](https://github.com/altmush/BenchmarkLLMs)")
     # Reddit renders a single newline as a space, so every line of the part a human reads needs a
     # hard break. Inside the ```yaml fence it would show as whitespace, so that block is left alone.
-    fence = A.index("```yaml")
+    fence = A.index("```yaml") if yaml_on else len(A) - 1   # without the block, the last line is the link
     def brk(i):
         t = A[i].strip()
         if not t or t.startswith("#") or t.startswith("|") or t.startswith("- "):
@@ -441,19 +446,21 @@ def build_post(metafile, runsfile):
 
 
 def post(metafile, runsfile, mode=""):
-    body = build_post(metafile, runsfile)
+    body = build_post(metafile, runsfile)   # the saved copy always carries the machine block
     if mode != "reply":
         print(body)
         return
     # The shape a post run ends with: the numbers to read, the same thing fenced to paste, and the
     # questions nobody answered yet (a guessed source is the post saying "check me").
+    shown = build_post(metafile, runsfile,
+                       with_yaml=os.environ.get("BENCHMARKLLMS_YAML") == "1")
     m = dict(l.rstrip("\n").split("\t", 1) for l in open(metafile))
     q = [(f, v) for f, v in sorted(m.items()) if f.endswith("_source") and v[0] in ("p", "a", "u")]
     print("Congratulations! Your benchmark is ready!")
-    print("\n## Human Readable Results\n\n%s\n" % body.split("```yaml")[0].rstrip())
+    print("\n## Human Readable Results\n\n%s\n" % shown.split("```yaml")[0].rstrip())
     print("Here is your results in markdown format to easily post to "
           "[/r/BenchmarkLLMs](https://www.reddit.com/r/BenchmarkLLMs/)\n")
-    print("````markdown\n%s\n````" % body)   # four backticks: the post contains a fenced yaml block
+    print("````markdown\n%s\n````" % shown)   # four backticks: the post may contain a fenced yaml block
     if q:
         print("\n## Follow Up questions")
         for f, v in q:

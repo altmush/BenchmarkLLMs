@@ -7,7 +7,7 @@
 #        [--tasks general,coding] [--n 3] [--warmup 1] [--max-tokens 256]
 #        [--temperature 0] [--seed 1234] [--mode engine|harness]
 #        [--harness-name NAME] [--harness-tools "a b c"] [--harness-model-alias ALIAS]
-#        [--out BenchmarkLLMs-results/FILE.md] [--no-bench]
+#        [--out BenchmarkLLMs-results/FILE.md] [--no-bench] [--yaml (show the block in the reply)]
 #        [--ask] [--save-profile] [--profile FILE] [--real-name NAME] [--fine-tuning TAG]
 #        [--swap-config FILE] [--model-dir DIR] [--engine-dir DIR] [--harness-dir DIR]
 set -uo pipefail
@@ -19,7 +19,7 @@ TIMEOUT=${TIMEOUT:-5}
 ENDPOINT=${BENCHMARKLLMS_ENDPOINT:-}
 MODEL="" LADDER=49152 TASKS="general,coding"   # default ladder: 48k only; full ladder is opt-in
 N=3 WARMUP=1 MAXTOKENS=256 TEMP=0 SEED=1234 OUT="" MODE=engine
-H_NAME="" H_TOOLS="" H_ALIAS="" NO_BENCH=0
+H_NAME="" H_TOOLS="" H_ALIAS="" NO_BENCH=0 YAML=${BENCHMARKLLMS_YAML:-0}
 FLAGS="" FLAGS_F="" ENGINE_F="" EVERSION_F="" QUANT_F="" HF_F="" DRAFTER_F="" NOTES_F="" MAXCTX_F=""
 ENGINE_DIR="" HARNESS_DIR="" HARNESS_ENDPOINT="" UUID_FULL=""
 ENGINE_DIR_NAME="" ENGINE_DIR_VERSION="" ENGINE_DIR_COMMIT="" ENGINE_DIR_REMOTE=""
@@ -43,7 +43,7 @@ while [ $# -gt 0 ]; do
     --engine-dir) shift; ENGINE_DIR=$1;; --harness-dir) shift; HARNESS_DIR=$1;;
     --harness-endpoint) shift; HARNESS_ENDPOINT=$1;; --uuid-full) UUID_FULL=1;;
     --harness-name) shift; H_NAME=$1;; --harness-tools) shift; H_TOOLS=$1;;
-    --harness-model-alias) shift; H_ALIAS=$1;; --no-bench) NO_BENCH=1;;
+    --harness-model-alias) shift; H_ALIAS=$1;; --no-bench) NO_BENCH=1;; --yaml) YAML=1;;
     --ask) ASK=1;; --save-profile) SAVE_PROFILE=1;; --profile) shift; PROFILE=$1;;
     --real-name) shift; REALNAME_F=$1;; --fine-tuning) shift; FT_F=$1;;
     --swap-config) shift; SWAP_CONFIG=$1;; --model-dir) shift; MODEL_DIR=$1;;
@@ -343,6 +343,8 @@ META=$(mktemp)
   kv bench_start "$T0"; kv bench_end "$(date -u +%FT%TZ)"; kv total_time_s "$(( $(date -u +%s) - E0 ))s"
   printf 'gpus\t%s\n' "$GPUS"
 } > "$META"
+# --yaml changes only the reply: the saved post always carries the machine block (history reads it)
+[ "$YAML" = 1 ] && export BENCHMARKLLMS_YAML=1
 POST=$(python3 "$PY" post "$META" "$RUNS")
 if [ "$SAVE_PROFILE" = 1 ]; then   # the next run on this endpoint starts from these answers
   python3 "$PY" profile set "$PROFILE" "$KEY" "real_name=$REALNAME_F" "quant=$QUANT_F" \

@@ -56,7 +56,9 @@ greeting.
    Defaults are the subreddit defaults (ladder `49152` (48k) only, tasks
    `general,coding`, n=3 median, warmup 1, temp 0, seed 1234, max_tokens 256). Do not change
    them unless asked — the whole value of the site is that everyone runs the same point. Ask
-   before adding ladder points; the full ladder `0,16384,32768,49152,65536` is opt-in.
+   before adding ladder points; the full ladder `0,16384,32768,49152,65536` is opt-in. The saved
+   post always carries the machine-readable `yaml` block (the history tool reads it); `--yaml` only
+   adds it to the text the reply asks you to paste.
 
    The first positional argument is the engine's directory when it is a fork — only the
    manifest and git in that directory can name a fork, and that beats what the script can guess
@@ -72,8 +74,8 @@ greeting.
    your reply to them instead, and let them write the field before they post.
 6. **The script's last screen is the reply. Pass it on** — greeting, the results to read, the same
    post fenced for pasting into the subreddit, the timings, and any question nobody answered. Do not
-   reshuffle it into your own format; the fenced `yaml` block at the bottom is part of the post (it is
-   what makes posts searchable) and must stay machine-readable. Pass the fenced block verbatim: its
+   reshuffle it into your own format; when the reply shows a fenced `yaml` block (only with `--yaml`)
+   it is part of the post and must stay machine-readable. Pass the fenced block verbatim: its
    lines end in a backslash so Reddit keeps each field on its own line, so do not re-wrap it or
    strip that trailing backslash.
 7. Answer the follow-up questions it lists before handing the post over as final; if there are none,

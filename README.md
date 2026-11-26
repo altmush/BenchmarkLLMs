@@ -43,7 +43,9 @@ and any question nobody answered. Paste it into the subreddit.
 
 **What the default run measures.** One ladder point: 48k context, both tasks. Fixed prompts (hashed),
 median of 3 runs, warmup 1, batch 1, prefix cache off, temperature 0, seed 1234, max tokens 256. The
-full ladder (`0,16384,32768,49152,65536`) is opt-in with `--ladder`.
+full ladder (`0,16384,32768,49152,65536`) is opt-in with `--ladder`. Every saved post carries the
+machine-readable `yaml` block (the history table reads it); `--yaml` only adds it to the pasted text
+in the reply, which otherwise shows the human-readable part alone.
 
 **What you get.** The post, plus a copy in `BenchmarkLLMs-results/` — that folder is gitignored and holds
 *your* posts, so a model on your machine becomes a curve instead of a one-off post.
@@ -55,7 +57,8 @@ searching the web is labelled `(likely)` in the post; only what it can prove goe
 
 **Additional flags** the agent can pass when it knows better than to ask:
 `--endpoint`, `--model`, `--ladder`, `--quant`, `--engine`, `--engine-version`, `--hf`,
-`--fine-tuning`, `--real-name`, `--flags`, `--drafter`, `--model-max-context`, `--notes`, `--uuid-full`.
+`--fine-tuning`, `--real-name`, `--flags`, `--drafter`, `--model-max-context`, `--notes`, `--uuid-full`,
+`--yaml`.
 Flags beat directories, directories beat guesses. If the session's own model sits behind the endpoint
 being measured, say so — that run is a smoke test, not a post.
 
@@ -71,6 +74,7 @@ Elsewhere, say **"show me the past BenchmarkLLMs runs"**. The
 [`benchmark-llms-history`](benchmark-llms-history/) skill reads the yaml block of every post in
 `BenchmarkLLMs-results/` and prints them as one table — model, quant, engine, cold and warm tok/s and
 TTFT, date — sorted fastest first. Same skill format as the benchmark itself, so install it the same way.
+It reads the block, so it lists every saved post whether or not you passed `--yaml`.
 
 ## The rules that make posts comparable
 
